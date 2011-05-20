@@ -1,0 +1,67 @@
+Here is an example of basic function composition in ruby.
+
+ruby> def f(x); "<f>#{x}</f>"; end
+ => nil 
+ruby> def g(x); "<g>#{x}</g>"; end
+ => nil 
+ruby> f(g(1))
+ => "<f><g>1</g></f>" 
+ruby> g(f(1))
+ => "<g><f>1</f></g>" 
+
+Currently, views have to name(declare) the other views whose content they aggregate. 
+It's as if the functions were:
+
+ruby> def f(x); "<f>#{x}</f>"; end
+ => nil 
+ruby> def g(x); "<g>#{ f(x) }</g>"; end
+ => nil 
+ruby> g(1)
+ => "<g><f>1</f></g>" 
+ 
+This makes sad panda sad. A caller can't rearrange things as they can with functional composition.
+
+If views are not meant to be composed (only concatenated), you can use the 'f+g' cowpie.
+ruby> def f(name); "<f>#{name}</f>"; end
+ => nil 
+ruby> def g(children); "<g>#{children.join(',') }</g>"; end
+ => nil 
+ruby> bonsai( 'f+g', :name => 'Fred', :children => %w(mary jane) )
+ => "<f>Fred</f><g>mary,jane</g>"
+
+To make composition possible, define a graft point in each tree-returning function.
+
+ruby> def w()
+        "<w>
+            #{graft}
+         </w>"
+      end
+ => nil 
+ruby> def v(children)
+        "<v>
+           #{children.join(',') }
+         </v>
+      end
+ => nil 
+ruby> bonsai( 'w(v)', :children => %w(mary jane) )
+ => 
+ "<w>
+    <v>
+      #{children.join(',') }
+    </v>
+  </w>"
+ 
+ruby> bonsai( 'v(w)', :children => %w(mary jane) )  
+ => Error, v doesnt have a graft point. Did you mean 'root(v(w))' ?
+
+ruby> bonsai( 'root(v(w))', :children => %w(mary jane) )  
+ => "
+ <root>
+   <v>
+     mary,jane
+   </v>
+   <w></w>
+</root>
+
+
+
