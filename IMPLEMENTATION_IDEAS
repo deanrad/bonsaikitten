@@ -1,0 +1,48 @@
+#
+# What if we change each view into a function, where each graft point is a yield ? 
+# Then the benefits of functions (composability, memoizability) come for free.
+# Here's what that looks like (assume that there is something that turns view files on disk into these functions)
+# 
+irb(main):013:0> def bold;  "<b>#{yield}</b>"; end
+=> nil
+irb(main):014:0> bold{ "x" }
+=> "<b>x</b>"
+irb(main):015:0> def italic;  "<i>#{yield}</i>"; end
+=> nil
+irb(main):016:0> bold{ italic { "x" } }
+=> "<b><i>x</i></b>"
+irb(main):017:0> italic{ bold { "x" } }
+=> "<i><b>x</b></i>"
+irb(main):025:0> def name(first=nil, last=nil)
+irb(main):026:1>   "<input name='first' value='#{first}'/>
+irb(main):027:1"   <input name='last' value='#{last}'/>
+irb(main):028:1" #{yield}
+irb(main):029:1" "
+irb(main):030:1> end
+=> nil
+irb(main):031:0> name( *%w(Dave Matthews) ){ }
+=> "<input name='first' value='Dave'/>\n  <input name='last' value='Matthews'/>\n\n"
+irb(main):032:0> name( *%w(Dave Matthews) ){ "X"}
+=> "<input name='first' value='Dave'/>\n  <input name='last' value='Matthews'/>\nX\n"
+irb(main):033:0> puts name( *%w(Dave Matthews) ){ "X"}
+<input name='first' value='Dave'/>
+  <input name='last' value='Matthews'/>
+X
+=> nil
+irb(main):035:0> puts name( *%w(Dave Matthews2) ){ "Y"}
+<input name='first' value='Dave'/>
+  <input name='last' value='Matthews2'/>
+Y
+=> nil
+irb(main):036:0> puts bold{ name( *%w(Dave Matthews2) ){"Y"} }
+<b><input name='first' value='Dave'/>
+  <input name='last' value='Matthews2'/>
+Y
+</b>
+=> nil
+irb(main):037:0> puts bold{ italic{ name( *%w(Dave Matthews2) ){"Y"} } }
+<b><i><input name='first' value='Dave'/>
+  <input name='last' value='Matthews2'/>
+Y
+</i></b>
+=> nil
