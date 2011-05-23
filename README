@@ -1,67 +1,90 @@
-Here is an example of basic function composition in ruby.
+Bonsai Kitten - A more flexible way to shape your markup trees
 
-ruby> def f(x); "<f>#{x}</f>"; end
- => nil 
-ruby> def g(x); "<g>#{x}</g>"; end
- => nil 
-ruby> f(g(1))
- => "<f><g>1</g></f>" 
-ruby> g(f(1))
- => "<g><f>1</f></g>" 
+I have begun to think of a view as a function, whose return value is a string-serialized tree.
 
-Currently, views have to name(declare) the other views whose content they aggregate. 
-It's as if the functions were:
+Views that aggregate other views (as in render :partial => 'blah'), perform the action of grafting the tree of the dependent view into the tree of the calling view at what you might call a 'graft' point. This can be thought of as function composition. Bonsai allows you to use expressions like 
 
-ruby> def f(x); "<f>#{x}</f>"; end
- => nil 
-ruby> def g(x); "<g>#{ f(x) }</g>"; end
- => nil 
-ruby> g(1)
- => "<g><f>1</f></g>" 
- 
-This makes sad panda sad. A caller can't rearrange things as they can with functional composition.
+  viewa(viewb)
+  
+But more importantly, it allows you to also do 
 
-If views are not meant to be composed (only concatenated), you can use the 'f+g' cowpie.
-ruby> def f(name); "<f>#{name}</f>"; end
- => nil 
-ruby> def g(children); "<g>#{children.join(',') }</g>"; end
- => nil 
-ruby> bonsai( 'f+g', :name => 'Fred', :children => %w(mary jane) )
- => "<f>Fred</f><g>mary,jane</g>"
+  viewb(viewa)
+  
+because it separates the linking of views from the content of the views. 
+(You wont see "render viewa" inside of viewb, or vice versa).
 
-To make composition possible, define a graft point in each tree-returning function.
+By coding your views as independent objects to be aggregated, they are more
+likely to remain 'closed' (see the Open-Closed principle).
 
-ruby> def w()
-        "<w>
-            #{graft}
-         </w>"
-      end
- => nil 
-ruby> def v(children)
-        "<v>
-           #{children.join(',') }
-         </v>
-      end
- => nil 
-ruby> bonsai( 'w(v)', :children => %w(mary jane) )
- => 
- "<w>
-    <v>
-      #{children.join(',') }
-    </v>
-  </w>"
- 
-ruby> bonsai( 'v(w)', :children => %w(mary jane) )  
- => Error, v doesnt have a graft point. Did you mean 'root(v(w))' ?
+A simple example of grafting (without variables)
 
-ruby> bonsai( 'root(v(w))', :children => %w(mary jane) )  
- => "
- <root>
-   <v>
-     mary,jane
-   </v>
-   <w></w>
-</root>
+bold.bsai:
+-------------
+<b>{{}}</b>
+
+italic.bsai:
+-------------
+<i>{{}}</i>
+
+Examples:
+---------
+>> bsai 'bold(italic)'
+=> <b><i></i></b>
+
+>> bsai 'bold(italic)', 'xOx'
+=> <b><i>xOx</i></b>
+
+OPEN QUESTIONS: How could/should bonsai deal with multiple graft points ? Allow naming ? What are the illegal use cases in that case ? 
+
+Grafting with Variables
+
+If you dont expect a view to wrap other views, but you want to simply 'dress-up' a data object, you can use variables instead of graft-points. To populate the variables, pass a hash with keys equal to the variable names.
+
+Examples:
+
+name.bsai:
+-------------
+<div class='name'>{{first}} {{last}}</div>
+
+---------
+>> bsai 'name', {:first => 'Dave', :last => 'Matthews'}
+=> <div class='name'>Matthews, Dave</div>
+
+Grafting with Variables, Part Deux
+
+When you create a bonsai expression, any participating view can reference any variable. This means there is a flat namespace for lookup. However, the namespace for specifying data is not flat: specifying a key called 'name_fields.first' will target the 'first' field only in the 'name_fields' view. Use this to specify when a name means different things to different views, but omit it for the common case.
+
+name_fields.bsai:
+-------------
+{{}}
+<form id='name'>
+  <input name='title' value='{{title}}'/>
+  <input name='first' value='{{first}}'/>
+  <input name='last' value='{{last}}'/>
+</form>
+
+Examples:
+---------
+>> bsai 'name_fields(name)', {:first => 'Dave', :last => 'Matthews', :title => 'Sir'}
+=> 
+<div class='name'>Matthews, Dave</div>
+<form id='name'>
+  <input name='title' value='Sir' />
+  <input name='first' value='Dave' />
+  <input name='last' value='Matthews' />
+</form>
 
 
+Composition vs. Concatenation
 
+You've seen view1(view2). You might wonder, why not support a concatenation operator ? The above example would then be:
+
+>> bsai 'name+name_fields', :first => 'Dave', :last => 'Matthews', :title => 'Sir'
+
+So far, bonsai intentionally does not support that, because concatenation of
+trees does not yield a tree. Mathematically, the set of trees is not closed
+under concatenation, like it is closed under non-root-level grafting. If
+bonsai were to support concatenation, it might limit implementation options,
+or allow you to break your markup. 
+
+QUESTION: Would it be rubier to allow it anyway ? 
