@@ -1,0 +1,45 @@
+require 'rubygems'
+require 'rspec'
+require 'spec_helper'
+
+describe 'bonsai' do
+  include BonsaiHelper
+
+  describe BonsaiTree do
+    subject{ BonsaiTree.new( 'bold', 'X') }
+    
+    it 'should create a bonsai tree from an expression and data' do
+      subject.should_not be_nil
+    end
+    
+    it 'should know the views an expression references' do
+      subject.view_names.should == %w(bold)
+    end
+
+    it 'should have an instance method for each view' do
+      subject.view_names.each do |v|
+        subject.renderers.should be_respond_to(v) # lols, be_respond_to
+      end
+    end
+    
+    it 'should let renderers be called with a block whose content is inserted' do
+      subject.renderers.bold{ "YAY" }.should == "<b>YAY</b>"
+    end
+
+  end
+
+  describe 'BonsaiHelper (bsai)' do
+    subject{ bsai 'bold', 'X' }
+    it 'should render the \'bold\' example view' do
+      should == "<b>X</b>"
+    end
+    it 'should render the \'bold\' example view around \'italic\'' do
+      bsai('bold(italic)', 'X').should == "<b><i>X</i></b>"
+    end
+    it 'should render the \'italic\' example view around \'bold\'' do
+      bsai('italic(bold)', 'X').should == "<i><b>X</b></i>"
+    end
+  end
+  
+end
+
