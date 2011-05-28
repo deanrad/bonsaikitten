@@ -3,17 +3,23 @@
 #  - a hash map of name-value pairs, possibly nested, to supply data for rendering
 #  - a 'final' data object to insert at the graft-point of the inner-most view
 class BonsaiTree
-  attr_accessor :expr, :data, :renderers
+  attr_accessor :expr, :data, :renderer
   
   def initialize( expr, data )
     self.expr, self.data = expr, data
-    self.renderers = {}
+    self.renderer = {}
+
+    # set up the renderer, so that the bonsai expr can, with a few mods,
+    # be a valid ruby expression inside of it.
+    renderer.instance_variable_set("@data", data)
     
-    def renderers.bold
-      "<b>#{yield}</b>"
+    # LEFTOFF, look these methods up in a BonsaiGarden, and only define a method
+    # once per view per process, even if the method gets bound to multiple obj.
+    def renderer.bold
+      "<b>#{yield if block_given?}</b>"
     end
-    def renderers.italic
-      "<i>#{yield}</i>"
+    def renderer.italic
+      "<i>#{yield if block_given?}</i>"
     end
   end
 
@@ -23,15 +29,17 @@ class BonsaiTree
   
   # private
 
+  # We hack the bonsai expression into an evalable string. Lame.
   def render opts={}
+    # italic(bold) => italic{ bold{ data }}, then evaled
+    expr = self.expr.gsub("(", "{").gsub(")", "}")
     
-    data_proc= lambda{ data }
-    result = ""
-    view_names.reverse.each do |vn|
-      result = self.renderers.send vn, &data_proc
-      data_proc= lambda{ result }
+    if expr.include?('{')
+      expr.sub!( "}", "{@data}}")
+    else
+      expr << "{@data}"
     end
-    result
+    self.renderer.instance_eval expr
   end
   
   # returns the list, from outer to inner, of views this expression references

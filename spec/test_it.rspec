@@ -18,12 +18,12 @@ describe 'bonsai' do
 
     it 'should have an instance method for each view' do
       subject.view_names.each do |v|
-        subject.renderers.should be_respond_to(v) # lols, be_respond_to
+        subject.renderer.should be_respond_to(v) # lols, be_respond_to
       end
     end
     
-    it 'should let renderers be called with a block whose content is inserted' do
-      subject.renderers.bold{ "YAY" }.should == "<b>YAY</b>"
+    it 'should let renderer be called with a block whose content is inserted' do
+      subject.renderer.bold{ "YAY" }.should == "<b>YAY</b>"
     end
 
   end
